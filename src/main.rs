@@ -64,11 +64,7 @@ fn generate_password(length: usize, charset: &[u8]) -> String {
 
     // We collect the characters into a String.
     (0..length)
-        .map(|_| {
-            *charset
-                .choose(&mut rng)
-                .expect("Charset must not be empty") as char
-        })
+        .map(|_| *charset.choose(&mut rng).expect("Charset must not be empty") as char)
         .collect()
 }
 
