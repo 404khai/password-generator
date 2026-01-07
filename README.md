@@ -15,7 +15,7 @@ A robust, cryptographically secure command-line password generator written in Ru
 Ensure you have [Rust installed](https://www.rust-lang.org/tools/install).
 
 ```bash
-git clone https://github.com/yourusername/password-generator-rust.git
+git clone https://github.com/404khai/password-generator.git
 cd password-generator-rust
 cargo build --release
 ```
