@@ -1,5 +1,5 @@
 use rand::rngs::OsRng;
-use rand::seq::IndexedRandom; // Trait for choosing random elements from a slice
+use rand::seq::SliceRandom; // Trait for choosing random elements from a slice
 
 // Define charsets as byte slices for efficiency and immutability.
 // These will be combined to form the pool of characters for password generation.
@@ -26,7 +26,7 @@ const SYMBOLS: &[u8] = b"!@#$%^&*()-_=+[]{};:,.<>?";
 /// - We explicitly avoid `rand::thread_rng` because while it is currently secure,
 ///   `OsRng` is the most direct interface to the OS entropy source, minimizing user-space buffering
 ///   or state that could theoretically be compromised or seeded poorly in some environments.
-/// - Uses `IndexedRandom::choose` which guarantees uniform distribution (no modulo bias)
+/// - Uses `SliceRandom::choose` which guarantees uniform distribution (no modulo bias)
 ///   when selecting characters from the charset.
 fn generate_password(length: usize, charset: &[u8]) -> String {
     // Ensure we have a valid charset to avoid runtime panics or infinite loops if logic were different.
