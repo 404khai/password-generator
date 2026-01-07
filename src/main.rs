@@ -1,3 +1,4 @@
+use clap::Parser;
 use rand::rngs::OsRng;
 use rand::seq::SliceRandom; // Trait for choosing random elements from a slice
 
@@ -7,6 +8,30 @@ const UPPERCASE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const LOWERCASE: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 const DIGITS: &[u8] = b"0123456789";
 const SYMBOLS: &[u8] = b"!@#$%^&*()-_=+[]{};:,.<>?";
+
+/// Secure Password Generator
+///
+/// Generates cryptographically secure passwords with configurable length and character sets.
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// Password length
+    #[arg(short, long, default_value_t = 16)]
+    length: usize,
+
+    /// Exclude symbols from the password
+    #[arg(long)]
+    no_symbols: bool,
+
+    /// Exclude digits from the password
+    #[arg(long)]
+    no_numbers: bool,
+
+    /// Use only letters (uppercase and lowercase)
+    /// This is equivalent to --no-symbols --no-numbers
+    #[arg(long)]
+    only_letters: bool,
+}
 
 /// Generates a cryptographically secure password of the specified length.
 ///
@@ -29,22 +54,15 @@ const SYMBOLS: &[u8] = b"!@#$%^&*()-_=+[]{};:,.<>?";
 /// - Uses `SliceRandom::choose` which guarantees uniform distribution (no modulo bias)
 ///   when selecting characters from the charset.
 fn generate_password(length: usize, charset: &[u8]) -> String {
-    // Ensure we have a valid charset to avoid runtime panics or infinite loops if logic were different.
-    // In this specific implementation, `choose` would return None if empty, so we should handle that.
+    // Ensure we have a valid charset to avoid runtime panics.
     if charset.is_empty() {
         return String::new();
     }
 
     // We use OsRng directly for cryptographic security.
-    // This ensures we are getting high-quality entropy from the OS.
     let mut rng = OsRng;
 
     // We collect the characters into a String.
-    // (0..length) creates an iterator that yields `length` items.
-    // `map` generates a random character for each iteration.
-    // `choose` selects a random element from the slice uniformly.
-    // It returns an Option, but since we checked !charset.is_empty(), unwrap is safe here.
-    // However, for robustness in a library context, we might handle it, but for this internal helper, it's fine.
     (0..length)
         .map(|_| {
             *charset
@@ -55,20 +73,43 @@ fn generate_password(length: usize, charset: &[u8]) -> String {
 }
 
 fn main() {
-    // Phase 1 Demo: Hardcoded 16-character password generation.
-    
-    // Combine all charsets for the demo.
-    // We use a Vec<u8> to build the combined charset dynamically.
-    let mut all_chars = Vec::new();
-    all_chars.extend_from_slice(UPPERCASE);
-    all_chars.extend_from_slice(LOWERCASE);
-    all_chars.extend_from_slice(DIGITS);
-    all_chars.extend_from_slice(SYMBOLS);
+    let args = Cli::parse();
 
-    let password_length = 16;
-    let password = generate_password(password_length, &all_chars);
+    // Validation: Length must be >= 8
+    if args.length < 8 {
+        eprintln!("Error: Password length must be at least 8 characters.");
+        std::process::exit(1);
+    }
 
-    println!("Secure Password Generator (Phase 1 Demo)");
-    println!("----------------------------------------");
-    println!("Generated Password (length {}): {}", password_length, password);
+    // Construct the charset based on flags
+    let mut charset = Vec::new();
+
+    // Logic:
+    // 1. Always include letters (Upper + Lower) unless explicitly excluded (no flag for that yet).
+    // 2. If --only-letters is set, we skip digits and symbols.
+    // 3. Otherwise, include digits unless --no-numbers is set.
+    // 4. Otherwise, include symbols unless --no-symbols is set.
+
+    charset.extend_from_slice(UPPERCASE);
+    charset.extend_from_slice(LOWERCASE);
+
+    if args.only_letters {
+        // Do not add digits or symbols
+    } else {
+        if !args.no_numbers {
+            charset.extend_from_slice(DIGITS);
+        }
+        if !args.no_symbols {
+            charset.extend_from_slice(SYMBOLS);
+        }
+    }
+
+    // Ensure we have a charset (sanity check, though letters are currently always added)
+    if charset.is_empty() {
+        eprintln!("Error: Character set is empty. Please check your flags.");
+        std::process::exit(1);
+    }
+
+    let password = generate_password(args.length, &charset);
+    println!("{}", password);
 }
